@@ -4,3 +4,7 @@ go.sum
 
 // ignore main binary file
 main
+
+// test files
+test.txt
+/temp-images/*

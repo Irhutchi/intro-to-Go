@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <Title>Go Training</Title>
+   </head>
+   <body>
+       <!-- point action to upload api endpoint -->
+      <form action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">
+         
+         upload a file<br>
+         <!-- specify a file on local machine user wishes to upload -->
+         <input type="file" name="myfile" />
+
+         <input type="submit" value="upload file..." />
+      </form>
+      <br>
+      <br>
+      <br>
+
+      <!-- action supporting "uploadFile" func -->
+      <form action="http://localhost:8000/upload1" method="post" enctype="multipart/form-data">
+         
+         File Upload Two<br>
+         <input type="file" name="usrfile"/>
+
+         <input type="submit" />
+      </form>
+   </body>
+</html>
+
+
+<!DOCTYPE html>
+<html lang="en">
+   <head>
+      <meta charset="UTF-8">
+      <Title>Go Training</Title>
+   </head>
+   <body>
+      
+   </body>
+</html>
