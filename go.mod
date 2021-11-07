@@ -2,4 +2,4 @@ module example.com/web-service-gin
 
 go 1.16
 
-require github.com/gin-gonic/gin v1.7.3
+require github.com/gorilla/mux v1.8.0
