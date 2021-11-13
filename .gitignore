@@ -3,8 +3,9 @@ go.sum
 
 
 // ignore main binary file
-main
+golang-rest-api
 
 // test files
 test.txt
-/temp-images/*
+/images/*
+/SOPs/*
