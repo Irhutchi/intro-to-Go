@@ -3,127 +3,69 @@ package main
 // ref: https://github.com/bradtraversy/go_restapi
 
 import (
-	"encoding/json"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
-	"strconv"
+	"path/filepath"
 
 	"github.com/gorilla/mux"
 )
 
-// user represents data about a record user.
-type User struct {
-	ID    string `json:"id"`
-	Fname string `json:"fname"`
-	Lname string `json:"lname"`
-	Uname string `json:"uname"`
-}
+const (
+	port string = ":8000"
+)
 
-// albums slice to seed record user data.
-// var albums = []user{
-// 	{ID: "1", Lname: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-// 	{ID: "2", Lname: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-// 	{ID: "3", Lname: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
+// func setupRoutes() {
+// 	// Init router
+// 	// router := handler.NewRouter()
+
+// 	// router.Get("/", handler.Handler{H: handle})
+// 	fmt.Println("Sever started on port 8000")
+// 	router := mux.NewRouter()
+// 	// Route handles & endpoints
+// 	router.HandleFunc("/users", getUsers).Methods("GET")
+// 	router.HandleFunc("/users/{id}", getUser).Methods("GET")
+// 	router.HandleFunc("/users", createUser).Methods("POST")
+// 	router.HandleFunc("/users/{id}", updateUser).Methods("PUT")
+// 	router.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
+// 	router.HandleFunc("/upload", fileUpload)
+// 	router.HandleFunc("/upload1", uploadFile)
+// 	// router.HandleFunc("/index", index()
+// 	// req.HandleFunc("/", index).Methods("GET")
+
+// 	// Start server
+// 	log.Println("Server listening on port", port)
+// 	log.Fatal(http.ListenAndServe(port, router)) // set listen port
 // }
-
-// Init users var as a slice User struct
-var users []User
-
-func setupRoutes() {
-	// Init router
-	fmt.Println("Sever started on port 8000")
-	request := mux.NewRouter()
-	// Route handles & endpoints
-	request.HandleFunc("/users", getUsers).Methods("GET")
-	request.HandleFunc("/users/{id}", getUser).Methods("GET")
-	request.HandleFunc("/users", createUser).Methods("POST")
-	request.HandleFunc("/users/{id}", updateUser).Methods("PUT")
-	request.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
-	request.HandleFunc("/upload", fileUpload)
-	request.HandleFunc("/upload1", uploadFile)
-
-	// Start server
-	log.Fatal(http.ListenAndServe(":8000", request)) // set listen port
-}
 
 // Main function
 func main() {
+	// setupRoutes()
 
-	// Hardcoded data - @todo: add database
-	users = append(users, User{ID: "1", Fname: "John", Lname: "Doe", Uname: "Jdoe"})
-	users = append(users, User{ID: "2", Fname: "Steve", Lname: "Smith", Uname: "Steve"})
+	// continue with psql tutorial: https://youtu.be/zj12MYTrkdc
 
-	setupRoutes()
+	fmt.Println("Sever started on port 8000")
+	router := mux.NewRouter()
+	// Route handles & endpoints
+	router.HandleFunc("/users", getUsers).Methods("GET")
+	router.HandleFunc("/users/{id}", getUser).Methods("GET")
+	router.HandleFunc("/users", createUser).Methods("POST")
+	router.HandleFunc("/users/{id}", updateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", deleteUser).Methods("DELETE")
+	router.HandleFunc("/upload", fileUpload)
+	router.HandleFunc("/upload1", uploadFile)
+	// router.HandleFunc("/index", index()
+	// req.HandleFunc("/", index).Methods("GET")
 
+	// Start server
+	log.Println("Server listening on port", port)
+	log.Fatal(http.ListenAndServe(port, router)) // set listen port
 }
 
-// Get all users
-func getUsers(write http.ResponseWriter, request *http.Request) {
-	write.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(write).Encode(users)
-}
-
-// Get single user
-func getUser(write http.ResponseWriter, request *http.Request) {
-	write.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(request) // Gets params
-	// Loop through users and find one with the id from the params
-	for _, item := range users {
-		if item.ID == params["id"] {
-			json.NewEncoder(write).Encode(item)
-			return
-		}
-	}
-	json.NewEncoder(write).Encode(&User{})
-}
-
-// Add new user
-func createUser(write http.ResponseWriter, request *http.Request) {
-	write.Header().Set("Content-Type", "application/json")
-	var user User
-	_ = json.NewDecoder(request.Body).Decode(&user)
-	// convert random Int ID to a string
-	user.ID = strconv.Itoa(rand.Intn(100000000)) // Mock ID - not safe
-	users = append(users, user)
-	// add user to server memory
-	json.NewEncoder(write).Encode(user)
-}
-
-// Update user
-func updateUser(write http.ResponseWriter, request *http.Request) {
-	write.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(request)
-	for index, item := range users {
-		if item.ID == params["id"] {
-			users = append(users[:index], users[index+1:]...)
-			var user User
-			_ = json.NewDecoder(request.Body).Decode(&user)
-			user.ID = params["id"]
-			users = append(users, user)
-			json.NewEncoder(write).Encode(user)
-			return
-		}
-	}
-}
-
-// Delete user
-func deleteUser(write http.ResponseWriter, request *http.Request) {
-	write.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(request)
-	for index, item := range users {
-		if item.ID == params["id"] {
-			users = append(users[:index], users[index+1:]...)
-			break
-		}
-	}
-	json.NewEncoder(write).Encode(users)
-}
-
-func fileUpload(write http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(write, "uploading file\n")
+func fileUpload(resp http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(resp, "uploading file\n")
 
 	// 1. parse input , type multipart/form-data
 	r.ParseMultipartForm(10 << 20)
@@ -132,7 +74,7 @@ func fileUpload(write http.ResponseWriter, r *http.Request) {
 	file, handler, err := r.FormFile("myfile")
 	if err != nil {
 		log.Println(err)
-		http.Error(write, "Error Retrieving file from form-data", http.StatusInternalServerError)
+		http.Error(resp, "Error Retrieving file from form-data", http.StatusInternalServerError)
 		return
 	}
 
@@ -142,7 +84,7 @@ func fileUpload(write http.ResponseWriter, r *http.Request) {
 	fmt.Printf("File Size: %+v\n", handler.Size)
 	fmt.Printf("MIME Header: %+v\n", handler.Header)
 
-	// 3. write temporary file on the server
+	// 3. resp temporary file on the server
 	// create a temp file in our director
 	tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
 	if err != nil {
@@ -159,7 +101,7 @@ func fileUpload(write http.ResponseWriter, r *http.Request) {
 	tempFile.Write(fileBytes)
 
 	// 4. return whether or not this has been successful
-	fmt.Fprintf(write, "Successfully uploaded file\n")
+	fmt.Fprintf(resp, "Successfully uploaded file\n")
 }
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -192,4 +134,15 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	<br>
 	<h1>%v</h1>`, s)
 
+}
+
+func index(w http.ResponseWriter, r *http.Request) error {
+
+	w.WriteHeader(http.StatusOK)
+	base := filepath.Join("templates", "base.html")
+	index := filepath.Join("templates", "index.html")
+
+	templ, _ := template.ParseFiles(base, index)
+	templ.ExecuteTemplate(w, "base", nil)
+	return nil
 }
