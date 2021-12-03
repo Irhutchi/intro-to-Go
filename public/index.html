@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+ <title>Welcome Page</title>
+</head>
+
+<body>
+  <h1>Welcome to MetOrg</h1>
+  <!--
+    This section of the document specifies the table that will
+    be used to display the list of users and their description
+   -->
+  <table>
+    <tr>
+      <th>ID</th>
+      <th>First Name</th>
+      <th>Last Name</th>
+      <th>User Name</th>
+    </tr>
+    <td>Starting Point</td>
+    <td>Common</td>
+    </tr>
+  </table>
+  <br/>
+
+  <!--
+    This section contains the form, that will be used to hit the
+    `POST /bird` API that we will build in the next section
+   -->
+  <form action="/user" method="post">
+    ID:
+    <input type="text" name="Id">
+    <br/>First Name:
+    <input type="text" name="Fname">
+    <br/> Last Name:
+    <input type="text" name="Lname">
+    <br/> User Name:
+    <input type="text" name="Lname">
+    <br/>
+    <input type="submit" value="Submit">
+  </form>
+
+  <!--
+    Finally, the last section is the script that will
+    run on each page load to fetch the list of users
+    and add them to our existing table
+   -->
+  <script>
+    userTable = document.querySelector("table")
+
+    /*
+    Use the browsers `fetch` API to make a GET call to /user
+    We expect the response to be a JSON list of users, 
+    */
+    fetch("/user")
+      .then(response => response.json())
+      .then(userList => {
+        //Once we fetch the list, we iterate over it
+        userList.forEach(user => {
+          // Create the table row
+          row = document.createElement("tr")
+
+          // Create the table data elements for the species and
+					// description columns
+          id = document.createElement("td")
+          id.innerHTML = user.id
+          fname = document.createElement("td")
+          fname.innerHTML = user.fname
+          lname = document.createElement("td")
+          lname.innerHTML = user.lname
+          uname = document.createElement("td")
+          uname.innerHTML = user.uname
+
+          // Add the data elements to the row
+          row.appendChild(id)
+          row.appendChild(fname)
+          row.appendChild(lname)
+          row.appendChild(uname)
+          // Finally, add the row element to the table itself
+          birdTable.appendChild(row)
+        })
+      })
+  </script>
+</body>

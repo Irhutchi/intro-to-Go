@@ -6,6 +6,5 @@ go.sum
 golang-rest-api
 
 // test files
-test.txt
 /images/*
 /SOPs/*

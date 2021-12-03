@@ -63,6 +63,7 @@ func getUser(resp http.ResponseWriter, req *http.Request) {
 func createUser(resp http.ResponseWriter, req *http.Request) {
 	resp.Header().Set("Content-Type", "application/json")
 	var user User
+	// In error is true,respond with an error to the user
 	err := json.NewDecoder(req.Body).Decode(&user)
 	if err != nil {
 		resp.WriteHeader(http.StatusInternalServerError)
@@ -71,10 +72,16 @@ func createUser(resp http.ResponseWriter, req *http.Request) {
 	}
 	// convert random Int Id to a string
 	user.Id = strconv.Itoa(rand.Intn(100000000)) // Mock Id - not safe
+
 	users = append(users, user)
 	resp.WriteHeader(http.StatusOK)
 	result, err := json.Marshal(user)
 	resp.Write(result) //write the result of the users array
+
+	// Redirect the user to the original page (refresh page)
+	http.Redirect(resp, req, "/public/", http.StatusFound)
+
+	// http.Redirect(resp, req, "/public/", http.StatusFound)
 
 	// add user to server memory
 	// json.NewEncoder(resp).Encode(user)

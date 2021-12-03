@@ -1,54 +1,79 @@
 package main
 
-// ref: https://github.com/bradtraversy/go_restapi
-
 import (
-	"html/template"
+	"flag"
+	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
-	"path/filepath"
+	"time"
 
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 )
 
 const (
-	port string = ":8000"
+	port       string = ":8000"
+	apiVersion string = "/api/v1/"
 )
 
-func setupRoutes() {
-	// Init router
-	// router := handler.NewRouter()
+func setupRouter() *mux.Router {
+	// Initialise new router
+	router := mux.NewRouter() //net/http lib provides a defualt multiplexer
+	glog.Infof("Sever started on port %s", port)
 
-	// router.Get("/", handler.Handler{H: handle})
-	log.Println("Sever started on port 8000")
-	router := mux.NewRouter()
 	// Route handles & endpoints
-	router.HandleFunc("/api/v1/users", getUsers).Methods("GET")
-	router.HandleFunc("/api/v1/users/{id}", getUser).Methods("GET")
-	router.HandleFunc("/api/v1/users", createUser).Methods("POST")
-	router.HandleFunc("/api/v1/users/{id}", updateUser).Methods("PUT")
-	router.HandleFunc("/api/v1/users/{id}", deleteUser).Methods("DELETE")
+	router.HandleFunc(apiVersion+"users", getUsers).Methods("GET")
+	router.HandleFunc(apiVersion+"users/{id}", getUser).Methods("GET")
+	router.HandleFunc(apiVersion+"users", createUser).Methods("POST")
+	router.HandleFunc(apiVersion+"users/{id}", updateUser).Methods("PUT")
+	router.HandleFunc(apiVersion+"users/{id}", deleteUser).Methods("DELETE")
 	router.HandleFunc("/upload", fileUpload)
+	// router.HandleFunc("/index", index).Methods("GET")
 	// router.HandleFunc("/upload1", uploadFile)
-	// router.HandleFunc("/index", index()
-	// req.HandleFunc("/", index).Methods("GET")
+	files := http.Dir("./public/")
+	fileHandler := http.StripPrefix("/public/", http.FileServer(files))
+	router.PathPrefix("/public/").Handler(fileHandler).Methods("GET")
+	router.Handle("/", router)
+	// router.HandleFunc("/hello", handler).Methods("GET")
 
-	// Start server
-	log.Println("Server listening on port", port)
-	log.Fatal(http.ListenAndServe(port, router)) // set listen port
+	return router
+
+	// glog.Fatal(http.ListenAndServe(port, router)) // set listen port
 }
 
-// Main function
 func main() {
-	setupRoutes()
 
-	// continue with psql tutorial: https://youtu.be/zj12MYTrkdc
+	// This is needed to make `glog` believe that the flags have already been parsed, otherwise
+	// every log messages is prefixed by an error message stating the the flags haven't been
+	// parsed.
+	_ = flag.CommandLine.Parse([]string{})
+
+	// Always log to stderr by default
+	if err := flag.Set("logtostderr", "true"); err != nil {
+		glog.Infof("Unable to set logtostderr to true")
+	}
+
+	router := setupRouter()
+	srv := &http.Server{
+		Handler: router,
+		Addr:    "127.0.0.1:8000",
+		// enforce server timeout
+		WriteTimeout: 15 * time.Second,
+		ReadTimeout:  15 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
+		glog.Fatal(err)
+	}
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello World!")
 }
 
 func fileUpload(resp http.ResponseWriter, r *http.Request) {
-	log.Printf("%s, uploading file\n", resp)
+	glog.Infof("%s, uploading file\n", resp)
 
 	// 1. parse input , type multipart/form-data
 	r.ParseMultipartForm(10 << 20) // set constraints on file upload size
@@ -56,22 +81,22 @@ func fileUpload(resp http.ResponseWriter, r *http.Request) {
 	// 2. retrieve data from file posted form-date
 	file, fileHeader, err := r.FormFile("myfile")
 	if err != nil {
-		log.Println(err)
+		glog.Warning(err)
 		http.Error(resp, "Error Retrieving file from form-data", http.StatusInternalServerError)
 		return
 	}
 
 	defer file.Close()
 	// print headers to console
-	log.Printf("Uploading File: %+v\n", fileHeader.Filename)
-	log.Printf("File Size: %+v\n", fileHeader.Size)
-	log.Printf("MIME Header: %+v\n", fileHeader.Header)
+	glog.Infof("Uploading File: %+v\n", fileHeader.Filename)
+	glog.Infof("File Size: %+v\n", fileHeader.Size)
+	glog.Infof("MIME Header: %+v\n", fileHeader.Header)
 
 	// 3. resp temporary file on the server
 	// create a temp file in our director
 	// tempFile, err := ioutil.TempFile("temp-images", "upload-*.png")
 	contentType := fileHeader.Header["Content-Type"][0]
-	log.Println("Content Type: ", contentType)
+	glog.Info("Content Type: ", contentType)
 
 	var osFile *os.File
 	if contentType == "image/jpeg" {
@@ -79,19 +104,26 @@ func fileUpload(resp http.ResponseWriter, r *http.Request) {
 	} else if contentType == "application/pdf" {
 		osFile, err = ioutil.TempFile("SOPs", "*.pdf")
 	}
-	log.Println("error:", err)
+	glog.Error("error:", err)
 	defer osFile.Close()
 
 	// func ReadAll(r io.Reader) ([]byte, error)
 	fileBytes, err := ioutil.ReadAll(file)
 	if err != nil {
-		log.Println(err)
+		glog.Error(err)
 	}
 
-	osFile.Write(fileBytes)
+	//Stream to response
+	// if _, err := io.Copy(w, f); err != nil {
+	// 	glog.Info(err)
+	// 	w.WriteHeader(500)
+	// } // https://stackoverflow.com/questions/45302083/serving-up-pdfs-using-golang
+
+	// osFile.Write(fileBytes)
+	glog.Info(fileBytes)
 
 	resp.Header().Set("Content-Type", contentType)
-	log.Println(resp, `<form action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">     
+	glog.Info(resp, `<form action="http://localhost:8000/upload" method="post" enctype="multipart/form-data">     
 	upload a file<br>
 	<input type="file" name="usrfile" />
 	<input type="submit" />
@@ -101,7 +133,12 @@ func fileUpload(resp http.ResponseWriter, r *http.Request) {
 	<h1>%v</h1>`, osFile)
 
 	// 4. return whether or not this has been successful
-	log.Printf("%s: Successfully uploaded file\n", resp)
+	glog.Infof("%s: Successfully uploaded file\n", resp)
+
+	// after file upload is done redirect to new page.
+	// display pdf in iframe or similar
+	// modify upload post show pdf in the front-end
+	// what pkg will view pdf on front end.
 }
 
 // func uploadFile(w http.ResponseWriter, r *http.Request) {
@@ -136,13 +173,13 @@ func fileUpload(resp http.ResponseWriter, r *http.Request) {
 
 // }
 
-func index(w http.ResponseWriter, r *http.Request) error {
+func index(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello World!")
+	// w.WriteHeader(http.StatusOK)
+	// base := filepath.Join("templates", "base.html")
+	// index := filepath.Join("templates", "index.html")
 
-	w.WriteHeader(http.StatusOK)
-	base := filepath.Join("templates", "base.html")
-	index := filepath.Join("templates", "index.html")
-
-	templ, _ := template.ParseFiles(base, index)
-	templ.ExecuteTemplate(w, "base", nil)
-	return nil
+	// templ, _ := template.ParseFiles(base, index)
+	// templ.ExecuteTemplate(w, "base", nil)
+	// return nil
 }
